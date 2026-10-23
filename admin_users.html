@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Control Center{% endblock %}
+{% block header %}System Administration & User Access{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Admin Welcome Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-indigo-900 to-blue-900 text-white rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-white/10 text-amber-300 text-xs font-semibold mb-2">
+                <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+                <span>Super Administrator Privilege Level</span>
+            </div>
+            <h2 class="text-xl font-black">Admin Access Control Center</h2>
+            <p class="text-xs text-blue-200 mt-0.5">Manage user credentials, faculty roles, and configure global school profile settings.</p>
+        </div>
+        <button onclick="document.getElementById('newUserModal').classList.remove('hidden')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs shadow-md transition transform active:scale-95 shrink-0">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            <span>Create New User Account</span>
+        </button>
+    </div>
+
+    <!-- 2 Column Layout: Users Management & School Settings -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Column 1 & 2: User Accounts Directory -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
+                            Authorized System Users
+                        </h3>
+                        <p class="text-xs text-slate-400">Staff accounts with login credentials to the portal.</p>
+                    </div>
+                    <span class="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">
+                        {{ users|length }} Accounts
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                            <tr>
+                                <th class="px-5 py-3.5">User & Username</th>
+                                <th class="px-4 py-3.5">System Role</th>
+                                <th class="px-4 py-3.5">Email</th>
+                                <th class="px-4 py-3.5">Last Login</th>
+                                <th class="px-5 py-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for u in users %}
+                            <tr class="hover:bg-slate-50/70 transition-colors">
+                                <td class="px-5 py-3.5 whitespace-nowrap">
+                                    <div class="font-bold text-slate-900">{{ u['full_name'] }}</div>
+                                    <div class="text-[11px] text-slate-400 font-mono">@{{ u['username'] }}</div>
+                                </td>
+
+                                <td class="px-4 py-3.5 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                        {% if u['role'] == 'Admin' %}bg-purple-100 text-purple-800 border border-purple-200
+                                        {% elif u['role'] == 'Teacher' %}bg-blue-100 text-blue-800 border border-blue-200
+                                        {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                        <i data-lucide="{% if u['role'] == 'Admin' %}shield{% else %}user{% endif %}" class="w-3 h-3"></i>
+                                        {{ u['role'] }}
+                                    </span>
+                                </td>
+
+                                <td class="px-4 py-3.5 whitespace-nowrap text-slate-600">
+                                    {{ u['email'] or '-' }}
+                                </td>
+
+                                <td class="px-4 py-3.5 whitespace-nowrap text-[11px] text-slate-400 font-mono">
+                                    {{ u['last_login'] or 'Never logged in' }}
+                                </td>
+
+                                <td class="px-5 py-3.5 whitespace-nowrap text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button onclick="openPasswordModal({{ u['id'] }}, '{{ u['username'] }}')"
+                                                title="Reset Password"
+                                                class="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition">
+                                            <i data-lucide="key" class="w-4 h-4"></i>
+                                        </button>
+
+                                        {% if u['id'] != session.get('user_id') %}
+                                        <form method="POST" action="{{ url_for('admin_delete_user', user_id=u['id']) }}" onsubmit="return confirm('Permanently revoke and delete account @{{ u['username'] }}?');">
+                                            <button type="submit" title="Delete User" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <span class="text-[10px] font-semibold text-slate-400 italic px-2 py-1">(Current Session)</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 3: School Profile & Academic Configuration -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-4 h-4 text-indigo-600"></i>
+                        School Profile Settings
+                    </h3>
+                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Live Global</span>
+                </div>
+
+                <form method="POST" action="{{ url_for('admin_update_settings') }}" class="space-y-3.5 text-xs">
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">School Name</label>
+                        <input type="text" name="school_name" value="{{ settings.get('school_name', '') }}" required
+                               class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Motto / Tagline</label>
+                        <input type="text" name="school_tagline" value="{{ settings.get('school_tagline', '') }}" required
+                               class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">Academic Session</label>
+                            <input type="text" name="academic_year" value="{{ settings.get('academic_year', '') }}" required
+                                   class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 font-semibold mb-1">Current Term</label>
+                            <input type="text" name="current_term" value="{{ settings.get('current_term', '') }}" required
+                                   class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Principal / Head of School</label>
+                        <input type="text" name="principal_name" value="{{ settings.get('principal_name', '') }}" required
+                               class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Office Telephone</label>
+                        <input type="text" name="contact_phone" value="{{ settings.get('contact_phone', '') }}"
+                               class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-600 font-semibold mb-1">Official Email</label>
+                        <input type="email" name="contact_email" value="{{ settings.get('contact_email', '') }}"
+                               class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <button type="submit"
+                            class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm transition">
+                        Update Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Security Event & Intrusion Audit Log Panel -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                    <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">Security Audit Trail & Access Logs</h3>
+                    <p class="text-xs text-slate-400">Real-time monitoring of authentications, lockout incidents, and sensitive admin operations.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Brute-Force Guard Active (5 attempts max)
+                </span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                    <tr>
+                        <th class="px-5 py-3">Timestamp</th>
+                        <th class="px-4 py-3">Security Event</th>
+                        <th class="px-4 py-3">User Account</th>
+                        <th class="px-4 py-3">IP Address</th>
+                        <th class="px-4 py-3">Description / Details</th>
+                        <th class="px-5 py-3 text-center">Severity</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for log in security_logs %}
+                    <tr class="hover:bg-slate-50/70">
+                        <td class="px-5 py-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">{{ log['timestamp'] }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="font-bold font-mono text-xs
+                                {% if 'FAILED' in log['event_type'] or 'LOCKED' in log['event_type'] %}text-rose-600
+                                {% elif 'SUCCESS' in log['event_type'] %}text-emerald-600
+                                {% elif 'DELETED' in log['event_type'] or 'PASSWORD' in log['event_type'] %}text-amber-600
+                                {% else %}text-slate-700{% endif %}">
+                                {{ log['event_type'] }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap font-semibold text-slate-800">@{{ log['username'] }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-slate-500">{{ log['ip_address'] }}</td>
+                        <td class="px-4 py-3 text-slate-600 max-w-sm">{{ log['description'] }}</td>
+                        <td class="px-5 py-3 text-center whitespace-nowrap">
+                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                {% if log['severity'] == 'DANGER' %}bg-rose-100 text-rose-800
+                                {% elif log['severity'] == 'WARNING' %}bg-amber-100 text-amber-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ log['severity'] }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-400">
+                            No security events recorded yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Create New User Account -->
+<div id="newUserModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-4 h-4 text-brand-600"></i>
+                Create System User Account
+            </h3>
+            <button type="button" onclick="document.getElementById('newUserModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_create_user') }}" class="p-6 space-y-4 text-xs">
+            <div>
+                <label class="block text-slate-600 font-semibold mb-1">Username * (login identifier)</label>
+                <input type="text" name="username" required placeholder="e.g. b.miller"
+                       class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div>
+                <label class="block text-slate-600 font-semibold mb-1">Initial Password *</label>
+                <input type="password" name="password" required placeholder="••••••••"
+                       class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div>
+                <label class="block text-slate-600 font-semibold mb-1">Full Legal Name *</label>
+                <input type="text" name="full_name" required placeholder="e.g. Brian Miller"
+                       class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">User Email</label>
+                    <input type="email" name="email" placeholder="b.miller@sunnyvale.edu"
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Privilege Role *</label>
+                    <select name="role" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-semibold">
+                        <option value="Admin">Admin (Full Control)</option>
+                        <option value="Teacher" selected>Teacher (Academics & Attendance)</option>
+                        <option value="Bursar">Bursar (Fees & Billing)</option>
+                        <option value="Staff">Staff (View Only)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="document.getElementById('newUserModal').classList.add('hidden')"
+                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-sm">
+                    Create Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Reset User Password -->
+<div id="resetPasswordModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800">Reset User Password</h3>
+            <button type="button" onclick="document.getElementById('resetPasswordModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="resetPasswordForm" method="POST" action="" class="p-5 space-y-4 text-xs">
+            <div>
+                <span class="text-slate-400 block mb-0.5">Account Username:</span>
+                <span id="resetModalUsername" class="font-bold text-slate-800 text-sm font-mono"></span>
+            </div>
+
+            <div>
+                <label class="block text-slate-600 font-semibold mb-1">New Password *</label>
+                <input type="password" name="new_password" required placeholder="Enter new password"
+                       class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="document.getElementById('resetPasswordModal').classList.add('hidden')"
+                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-sm">
+                    Save New Password
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openPasswordModal(userId, username) {
+        document.getElementById('resetPasswordForm').action = "/admin/users/" + userId + "/password";
+        document.getElementById('resetModalUsername').innerText = "@" + username;
+        document.getElementById('resetPasswordModal').classList.remove('hidden');
+    }
+</script>
+{% endblock %}
+

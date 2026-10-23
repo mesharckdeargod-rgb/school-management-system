@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Attendance Sheet{% endblock %}
+{% block header %}Primary Roll Call & Attendance{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Filters & Class Selection Bar -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        <form method="GET" action="{{ url_for('attendance') }}" class="flex flex-wrap items-center gap-3">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Primary Class</label>
+                <select name="class_id" onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 min-w-[220px]">
+                    {% for c in classes %}
+                    <option value="{{ c['id'] }}" {% if selected_class_id == c['id'] %}selected{% endif %}>
+                        {{ c['name'] }} ({{ c['grade_level'] }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Attendance Date</label>
+                <input type="date" name="date" value="{{ selected_date }}" onchange="this.form.submit()"
+                       class="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+            </div>
+        </form>
+
+        <!-- Quick "Mark All Present" helper -->
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="markAllPresent()"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-xs transition">
+                <i data-lucide="check-check" class="w-4 h-4"></i>
+                <span>Mark All Present</span>
+            </button>
+            <button type="submit" form="attendanceForm"
+                    class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-sm transition">
+                <i data-lucide="save" class="w-4 h-4"></i>
+                <span>Save Roll Call</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Class Header -->
+    {% if active_class %}
+    <div class="flex items-center justify-between px-1">
+        <div>
+            <h3 class="text-base font-bold text-slate-800">{{ active_class['name'] }}</h3>
+            <span class="text-xs text-slate-500">Room {{ active_class['room_number'] }} • {{ students|length }} Pupils on Roll</span>
+        </div>
+        <div class="text-xs text-slate-400 font-medium">
+            Date: <strong>{{ selected_date }}</strong>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Roll Call Form & Table -->
+    <form id="attendanceForm" method="POST" action="{{ url_for('save_attendance') }}">
+        <input type="hidden" name="class_id" value="{{ selected_class_id }}">
+        <input type="hidden" name="date" value="{{ selected_date }}">
+
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                        <tr>
+                            <th class="px-5 py-3.5 w-12">#</th>
+                            <th class="px-4 py-3.5">Pupil Name</th>
+                            <th class="px-4 py-3.5">Admission No</th>
+                            <th class="px-6 py-3.5 text-center">Attendance Status</th>
+                            <th class="px-4 py-3.5">Teacher Note / Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for st in students %}
+                        {% set current_status = st['att_status'] or 'Present' %}
+                        <tr class="hover:bg-slate-50/60 transition-colors">
+                            <td class="px-5 py-3 text-slate-400 font-mono">{{ loop.index }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-full {{ st['avatar_color'] }} font-bold text-[10px] flex items-center justify-center shrink-0">
+                                        {{ st['first_name'][0] }}{{ st['last_name'][0] }}
+                                    </div>
+                                    <span class="font-bold text-slate-900">{{ st['first_name'] }} {{ st['last_name'] }}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-500 font-mono text-[11px]">{{ st['admission_no'] }}</td>
+                            
+                            <!-- Radio Buttons for Status -->
+                            <td class="px-6 py-3">
+                                <div class="flex items-center justify-center gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="status_{{ st['id'] }}" value="Present" class="peer hidden" {% if current_status == 'Present' %}checked{% endif %}>
+                                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 peer-checked:shadow-xs transition block text-center">
+                                            Present
+                                        </span>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="status_{{ st['id'] }}" value="Late" class="peer hidden" {% if current_status == 'Late' %}checked{% endif %}>
+                                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 peer-checked:shadow-xs transition block text-center">
+                                            Late
+                                        </span>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="status_{{ st['id'] }}" value="Absent" class="peer hidden" {% if current_status == 'Absent' %}checked{% endif %}>
+                                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 peer-checked:shadow-xs transition block text-center">
+                                            Absent
+                                        </span>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="status_{{ st['id'] }}" value="Excused" class="peer hidden" {% if current_status == 'Excused' %}checked{% endif %}>
+                                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 text-slate-600 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 peer-checked:shadow-xs transition block text-center">
+                                            Excused
+                                        </span>
+                                    </label>
+                                </div>
+                            </td>
+
+                            <!-- Remarks input -->
+                            <td class="px-4 py-3">
+                                <input type="text" name="remarks_{{ st['id'] }}" value="{{ st['remarks'] or '' }}" placeholder="Optional notes (e.g. excused doctor appt)"
+                                       class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white text-xs focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="py-12 text-center text-slate-400">
+                                <i data-lucide="users" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                                No active students found in this class.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="p-4 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between">
+                <span class="text-xs text-slate-500">Always click <strong>Save Roll Call</strong> to apply changes to database.</span>
+                <button type="submit" class="px-6 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-sm transition">
+                    Save Roll Call
+                </button>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+<script>
+    function markAllPresent() {
+        const presentRadios = document.querySelectorAll('input[type="radio"][value="Present"]');
+        presentRadios.forEach(radio => {
+            radio.checked = true;
+        });
+    }
+</script>
+{% endblock %}
+

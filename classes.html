@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Classes & Homerooms{% endblock %}
+{% block header %}Classes & Homerooms{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Action Bar -->
+    <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div>
+            <h3 class="text-sm font-bold text-slate-800">Primary Grades & Classrooms</h3>
+            <p class="text-xs text-slate-500">Manage grade levels, section names, room numbers, and homeroom teachers.</p>
+        </div>
+        <button onclick="document.getElementById('classModal').classList.remove('hidden')"
+                class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition shadow-sm">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Add Class / Room</span>
+        </button>
+    </div>
+
+    <!-- Class Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for cl in classes %}
+        {% set pct = (cl['student_count'] / cl['capacity'] * 100)|round|int %}
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition">
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-50 text-brand-700 border border-brand-100">
+                        {{ cl['grade_level'] }}
+                    </span>
+                    <span class="text-xs font-mono text-slate-400">
+                        Room {{ cl['room_number'] }}
+                    </span>
+                </div>
+
+                <h4 class="text-base font-extrabold text-slate-900 mb-1">{{ cl['name'] }}</h4>
+                <div class="text-xs text-slate-500 flex items-center gap-1.5 mb-4">
+                    <i data-lucide="user-check" class="w-3.5 h-3.5 text-indigo-500"></i>
+                    <span>Homeroom: <strong>{{ cl['teacher_name'] or 'Teacher Not Assigned' }}</strong></span>
+                </div>
+
+                <!-- Capacity Progress Bar -->
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div class="flex justify-between text-xs font-medium text-slate-600 mb-1.5">
+                        <span>Enrollment: <strong>{{ cl['student_count'] }}</strong> / {{ cl['capacity'] }} pupils</span>
+                        <span class="font-bold {% if pct >= 90 %}text-rose-600{% elif pct >= 70 %}text-amber-600{% else %}text-emerald-600{% endif %}">
+                            {{ pct }}%
+                        </span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                        <div class="h-full rounded-full {% if pct >= 90 %}bg-rose-500{% elif pct >= 70 %}bg-amber-500{% else %}bg-brand-500{% endif %}" style="width: {{ pct }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <a href="{{ url_for('students', class_id=cl['id']) }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                    <span>View Class Roster</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+                <a href="{{ url_for('attendance', class_id=cl['id']) }}" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                    <i data-lucide="check-square" class="w-3.5 h-3.5"></i>
+                    <span>Roll Call</span>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Modal: Add Class -->
+<div id="classModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-800">Create New Class Section</h3>
+            <button type="button" onclick="document.getElementById('classModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('add_class') }}" class="p-6 space-y-4 text-xs">
+            <div>
+                <label class="block text-slate-600 font-semibold mb-1">Class Section Name *</label>
+                <input type="text" name="name" required placeholder="e.g. Grade 1 - Robins"
+                       class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Grade Level *</label>
+                    <select name="grade_level" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="Crèche">Crèche (Nursery / Toddlers)</option>
+                        <option value="Kindergarten">Kindergarten (KG)</option>
+                        <option value="Class 1">Class 1</option>
+                        <option value="Class 2">Class 2</option>
+                        <option value="Class 3">Class 3</option>
+                        <option value="Class 4">Class 4</option>
+                        <option value="Class 5">Class 5</option>
+                        <option value="Class 6">Class 6</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Room Number *</label>
+                    <input type="text" name="room_number" required placeholder="e.g. Room 104"
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Max Capacity</label>
+                    <input type="number" name="capacity" value="25" min="10" max="40"
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Homeroom Educator</label>
+                    <select name="teacher_id" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="">-- Select Teacher --</option>
+                        {% for t in teachers %}
+                        <option value="{{ t['id'] }}">{{ t['full_name'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="document.getElementById('classModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-sm">
+                    Create Class
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

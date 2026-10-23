@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Report Card - {{ student['first_name'] }} {{ student['last_name'] }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            .report-card-container { border: 1px solid #cbd5e1 !important; box-shadow: none !important; margin: 0 auto; width: 100% !important; max-width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen py-8 px-4 font-sans text-slate-800 antialiased">
+
+    <!-- Flash Messages (No-print) -->
+    <div class="max-w-4xl mx-auto mb-4 no-print">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flex items-center justify-between p-3.5 mb-2 text-xs rounded-xl border shadow-sm
+                        {% if category == 'success' %} bg-emerald-50 text-emerald-800 border-emerald-200
+                        {% elif category == 'error' %} bg-rose-50 text-rose-800 border-rose-200
+                        {% else %} bg-blue-50 text-blue-800 border-blue-200 {% endif %}">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span class="font-medium">{{ message }}</span>
+                        </div>
+                        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-700">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Top Action Nav (Hidden in print) -->
+    <div class="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 no-print">
+        <a href="{{ url_for('student_detail', student_id=student['id']) }}" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white px-3.5 py-2 rounded-xl shadow-xs border border-slate-200 transition">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back to Pupil Profile</span>
+        </a>
+
+        <!-- Parent Dispatch & Print Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Direct WhatsApp Button -->
+            <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition transform active:scale-95"
+               title="Open in WhatsApp with pre-filled message">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>Send WhatsApp</span>
+            </a>
+
+            <!-- Direct SMS Button -->
+            <a href="{{ sms_url }}"
+               class="inline-flex items-center gap-2 px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-sm transition transform active:scale-95"
+               title="Launch SMS App with pre-filled text">
+                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                <span>Send SMS</span>
+            </a>
+
+            <!-- Customize / Preview Modal Trigger -->
+            <button onclick="document.getElementById('shareModal').classList.remove('hidden')"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl shadow-xs transition">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <span>Share Options & Log</span>
+            </button>
+
+            <!-- Print Button -->
+            <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                <i data-lucide="printer" class="w-4 h-4"></i>
+                <span>Print</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Official Report Card Container -->
+    <div class="report-card-container max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 p-8 md:p-12 relative overflow-hidden">
+        
+        <!-- Header Ribbon Accent -->
+        <div class="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-400"></div>
+
+        <!-- School Header -->
+        <div class="border-b-2 border-slate-100 pb-6 mb-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-blue-600 flex items-center justify-center text-white text-3xl font-black shadow-md">
+                        🏫
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-900 tracking-tight">{{ school_name }}</h1>
+                        <p class="text-xs text-slate-500 font-medium">{{ school_tagline }}</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Primary Education Board • Springfield District #104</p>
+                    </div>
+                </div>
+                <div class="text-right sm:border-l sm:border-slate-100 sm:pl-6">
+                    <span class="inline-block px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-800 border border-blue-200 uppercase tracking-wider">
+                        Progress Report Card
+                    </span>
+                    <div class="text-xs font-bold text-slate-700 mt-1.5">{{ term }}</div>
+                    <div class="text-[11px] text-slate-400">Session {{ academic_year }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pupil & Homeroom Details Grid -->
+        <div class="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div>
+                <span class="text-slate-400 text-[11px] block uppercase font-bold tracking-wider">Pupil Name</span>
+                <span class="font-extrabold text-slate-900 text-sm">{{ student['first_name'] }} {{ student['last_name'] }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 text-[11px] block uppercase font-bold tracking-wider">Pupil ID / Roll No</span>
+                <span class="font-mono font-bold text-slate-800">{{ student['admission_no'] }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 text-[11px] block uppercase font-bold tracking-wider">Class / Grade</span>
+                <span class="font-bold text-blue-700">{{ student['class_name'] }} ({{ student['grade_level'] }})</span>
+            </div>
+            <div>
+                <span class="text-slate-400 text-[11px] block uppercase font-bold tracking-wider">Homeroom Teacher</span>
+                <span class="font-bold text-slate-800">{{ student['homeroom_teacher'] or 'Faculty Staff' }}</span>
+            </div>
+        </div>
+
+        <!-- Academic Subjects & Marks Table -->
+        <div class="mb-6">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-600"></i> Academic Learning Areas & Subjects
+            </h3>
+
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                        <tr>
+                            <th class="py-3 px-4">Subject</th>
+                            <th class="py-3 px-3 text-center">Score</th>
+                            <th class="py-3 px-3 text-center">Grade</th>
+                            <th class="py-3 px-4">Classroom Demeanor / Conduct</th>
+                            <th class="py-3 px-4">Educator Observations</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for g in grades %}
+                        <tr>
+                            <td class="py-3 px-4 font-bold text-slate-800">{{ g['subject_name'] }}</td>
+                            <td class="py-3 px-3 text-center font-extrabold text-slate-900">{{ g['score']|int }}%</td>
+                            <td class="py-3 px-3 text-center">
+                                <span class="inline-block px-2 py-0.5 rounded font-black text-xs
+                                    {% if g['letter_grade'] in ['A+', 'A'] %}bg-emerald-100 text-emerald-800
+                                    {% elif g['letter_grade'] == 'B' %}bg-blue-100 text-blue-800
+                                    {% elif g['letter_grade'] == 'C' %}bg-amber-100 text-amber-800
+                                    {% else %}bg-rose-100 text-rose-800{% endif %}">
+                                    {{ g['letter_grade'] }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 font-medium text-slate-700">{{ g['conduct_rating'] }}</td>
+                            <td class="py-3 px-4 text-slate-600 italic text-[11px]">{{ g['teacher_remarks'] or 'Demonstrates consistent effort and positive attitude.' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-slate-400">
+                                No subject evaluations submitted for this term.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary & Attendance Split Box -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <!-- Overall Academic Result -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Term Cumulative Average</span>
+                    <div class="text-2xl font-black text-slate-900 mt-1">{{ avg_score }}%</div>
+                    <span class="text-xs text-slate-500">Overall Standard: <strong>{{ overall_grade }}</strong></span>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black text-2xl shadow-sm">
+                    {{ overall_grade }}
+                </div>
+            </div>
+
+            <!-- Attendance Standing -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">School Attendance & Punctuality</span>
+                {% set att_total = att['total_days'] or 0 %}
+                {% set att_present = att['present_cnt'] or 0 %}
+                {% set att_late = att['late_cnt'] or 0 %}
+                {% set att_absent = att['absent_cnt'] or 0 %}
+                <div class="flex items-center gap-4 mt-2 text-xs">
+                    <div>
+                        <div class="font-extrabold text-slate-800 text-base">{{ att_present }}</div>
+                        <span class="text-[10px] text-slate-400">Days Present</span>
+                    </div>
+                    <div>
+                        <div class="font-extrabold text-amber-600 text-base">{{ att_late }}</div>
+                        <span class="text-[10px] text-slate-400">Late</span>
+                    </div>
+                    <div>
+                        <div class="font-extrabold text-rose-600 text-base">{{ att_absent }}</div>
+                        <span class="text-[10px] text-slate-400">Days Absent</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Primary Social & Behavioral Competencies -->
+        <div class="border border-slate-200 rounded-xl p-4 mb-8 bg-white">
+            <h4 class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">Primary Developmental Competencies</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Works well with peers</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Listens attentively</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Completes class tasks</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Respects school property</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Official Signatures Area -->
+        <div class="pt-8 border-t-2 border-slate-200 grid grid-cols-3 gap-6 text-center text-xs">
+            <div>
+                <div class="h-10 border-b border-dashed border-slate-400 flex items-end justify-center pb-1">
+                    <span class="font-serif italic text-sm text-slate-700">{{ student['homeroom_teacher'] or 'Teacher Sign' }}</span>
+                </div>
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-1 block">Homeroom Teacher</span>
+            </div>
+
+            <div>
+                <div class="h-10 border-b border-dashed border-slate-400 flex items-end justify-center pb-1">
+                    <span class="font-serif italic text-sm text-slate-700">Dr. Eleanor Vance, Ed.D</span>
+                </div>
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-1 block">Head of Primary School</span>
+            </div>
+
+            <div>
+                <div class="h-10 border-b border-dashed border-slate-400"></div>
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-1 block">Parent / Guardian Signature</span>
+            </div>
+        </div>
+
+        <!-- School Seal Watermark & Footer -->
+        <div class="text-center text-[10px] text-slate-400 mt-8 pt-4 border-t border-slate-100">
+            This is an official document issued by {{ school_name }}. Generated on {{ current_date }}.
+        </div>
+
+    </div>
+
+    <!-- Communication Dispatch History (Hidden in Print) -->
+    <div class="max-w-4xl mx-auto mt-6 no-print">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i data-lucide="history" class="w-4 h-4 text-indigo-600"></i>
+                    Parent Communication & Dispatch History
+                </h3>
+                <span class="text-xs text-slate-400">Guardian: {{ student['guardian_name'] }} ({{ student['guardian_phone'] }})</span>
+            </div>
+
+            {% if comm_logs %}
+            <div class="divide-y divide-slate-100 text-xs">
+                {% for log in comm_logs %}
+                <div class="py-3 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl font-bold flex items-center justify-center shrink-0
+                            {% if log['channel'] == 'WhatsApp' %}bg-emerald-100 text-emerald-700{% else %}bg-sky-100 text-sky-700{% endif %}">
+                            <i data-lucide="{% if log['channel'] == 'WhatsApp' %}message-circle{% else %}smartphone{% endif %}" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-slate-800">
+                                Sent via {{ log['channel'] }} to {{ log['recipient_name'] }} <span class="font-mono text-slate-500">({{ log['recipient_phone'] }})</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400">{{ log['sent_at'] }}</div>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {{ log['status'] }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-6 text-slate-400 text-xs">
+                <i data-lucide="message-square-dashed" class="w-6 h-6 mx-auto mb-1.5 opacity-40"></i>
+                No dispatches logged yet. Click "Send WhatsApp" or "Send SMS" above to notify the parent.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal: Share & Dispatch Options (Hidden in Print) -->
+    <div id="shareModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800">Send Report Card to Parent</h3>
+                        <p class="text-[11px] text-slate-500">Deliver via WhatsApp or SMS to {{ student['guardian_name'] }}</p>
+                    </div>
+                </div>
+                <button type="button" onclick="document.getElementById('shareModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4 text-xs">
+                <!-- Recipient Info -->
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Parent / Guardian</span>
+                        <span class="font-bold text-slate-900 text-sm">{{ student['guardian_name'] }} ({{ student['guardian_relation'] }})</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Phone Number</span>
+                        <span class="font-mono font-bold text-slate-800 text-sm">{{ student['guardian_phone'] }}</span>
+                    </div>
+                </div>
+
+                <!-- Message Preview -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="font-bold text-slate-700">Report Card Message Preview</label>
+                        <button type="button" onclick="copyMessageText()" class="text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            <span id="copyBtnText">Copy Text</span>
+                        </button>
+                    </div>
+                    <textarea id="messagePreview" rows="8" readonly
+                              class="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-mono text-[11px] focus:outline-none leading-relaxed">{{ message_text }}</textarea>
+                </div>
+
+                <!-- One-Click Dispatch Buttons -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+                       onclick="logDispatch('WhatsApp')"
+                       class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        <span>Launch WhatsApp</span>
+                    </a>
+
+                    <a href="{{ sms_url }}"
+                       onclick="logDispatch('SMS')"
+                       class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i>
+                        <span>Launch SMS App</span>
+                    </a>
+                </div>
+
+                <!-- Hidden form for logging dispatch -->
+                <form id="logDispatchForm" method="POST" action="{{ url_for('log_report_card_dispatch', student_id=student['id']) }}" class="hidden">
+                    <input type="hidden" name="channel" id="formChannel" value="WhatsApp">
+                    <input type="hidden" name="phone" value="{{ student['guardian_phone'] }}">
+                    <input type="hidden" name="recipient_name" value="{{ student['guardian_name'] }}">
+                    <input type="hidden" name="message_content" id="formContent" value="{{ message_text }}">
+                </form>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>💡 Tip: Clicking either button opens WhatsApp or SMS directly with this message ready to send!</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function copyMessageText() {
+            const copyText = document.getElementById("messagePreview");
+            navigator.clipboard.writeText(copyText.value).then(() => {
+                const btn = document.getElementById("copyBtnText");
+                btn.innerText = "Copied!";
+                setTimeout(() => { btn.innerText = "Copy Text"; }, 2000);
+            });
+        }
+
+        function logDispatch(channel) {
+            document.getElementById("formChannel").value = channel;
+            document.getElementById("logDispatchForm").submit();
+        }
+    </script>
+</body>
+</html>

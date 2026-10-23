@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Receipt #RCP-{{ fee['id'] }} - {{ school_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            .receipt-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; margin: 0 auto; width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen py-10 px-4 font-sans text-slate-800 antialiased">
+
+    <!-- Actions Bar (Hidden on print) -->
+    <div class="max-w-2xl mx-auto mb-6 flex items-center justify-between no-print">
+        <a href="{{ url_for('fees') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white px-3.5 py-2 rounded-xl shadow-xs border border-slate-200">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back to Fees Ledger</span>
+        </a>
+
+        <button onclick="window.print()" class="inline-flex items-center gap-2 px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Print Official Receipt</span>
+        </button>
+    </div>
+
+    <!-- Official Receipt Card -->
+    <div class="receipt-card max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 p-8 md:p-10 relative overflow-hidden">
+        
+        <!-- Ribbon -->
+        <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+
+        <!-- Receipt Header -->
+        <div class="flex items-center justify-between border-b-2 border-slate-100 pb-6 mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-400 to-brand-500 flex items-center justify-center text-white text-2xl font-bold shadow-sm">
+                    🏫
+                </div>
+                <div>
+                    <h2 class="text-xl font-black text-slate-900 leading-tight">{{ school_name }}</h2>
+                    <p class="text-[11px] text-slate-500">{{ school_tagline }}</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800">
+                    Official Fee Receipt
+                </span>
+                <div class="font-mono text-xs font-bold text-slate-800 mt-1">#RCP-2026-{{ "%04d"|format(fee['id']) }}</div>
+                <div class="text-[10px] text-slate-400">{{ fee['payment_date'] or current_date }}</div>
+            </div>
+        </div>
+
+        <!-- Payer & Student Details -->
+        <div class="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200/80 grid grid-cols-2 gap-4 text-xs">
+            <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Student / Pupil</span>
+                <span class="font-extrabold text-slate-900 text-sm">{{ fee['first_name'] }} {{ fee['last_name'] }}</span>
+                <div class="text-slate-500 font-mono text-[11px]">{{ fee['admission_no'] }} • {{ fee['class_name'] }}</div>
+            </div>
+            <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Parent / Guardian</span>
+                <span class="font-bold text-slate-800">{{ fee['guardian_name'] }}</span>
+                <div class="text-slate-500 text-[11px]">{{ fee['guardian_phone'] }}</div>
+            </div>
+        </div>
+
+        <!-- Line Item Table -->
+        <div class="mb-6">
+            <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] border-b border-slate-200">
+                    <tr>
+                        <th class="py-3 px-4">Description</th>
+                        <th class="py-3 px-4 text-center">Payment Channel</th>
+                        <th class="py-3 px-4 text-right">Invoiced Amount</th>
+                        <th class="py-3 px-4 text-right">Amount Paid</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr>
+                        <td class="py-3 px-4 font-semibold text-slate-800">{{ fee['fee_type'] }}</td>
+                        <td class="py-3 px-4 text-center text-slate-600">{{ fee['payment_method'] or 'Direct Bank' }}</td>
+                        <td class="py-3 px-4 text-right font-medium text-slate-600">${{ "{:,.2f}".format(fee['amount']) }}</td>
+                        <td class="py-3 px-4 text-right font-bold text-emerald-600">${{ "{:,.2f}".format(fee['paid_amount']) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Balance & Status Summary -->
+        {% set remaining = fee['amount'] - fee['paid_amount'] %}
+        <div class="flex justify-end mb-8">
+            <div class="w-64 space-y-1.5 text-xs">
+                <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Total Billed:</span>
+                    <span class="font-bold text-slate-800">${{ "{:,.2f}".format(fee['amount']) }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Amount Received:</span>
+                    <span class="font-black text-emerald-600">${{ "{:,.2f}".format(fee['paid_amount']) }}</span>
+                </div>
+                <div class="flex justify-between py-1">
+                    <span class="text-slate-500">Remaining Balance:</span>
+                    <span class="font-bold {% if remaining > 0 %}text-rose-600{% else %}text-slate-400{% endif %}">
+                        ${{ "{:,.2f}".format(remaining) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signatures & Stamp -->
+        <div class="pt-6 border-t-2 border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <div>
+                <div class="w-36 border-b border-dashed border-slate-400 h-8 flex items-end">
+                    <span class="font-serif italic text-slate-700">Bursar Office</span>
+                </div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-1 block">Authorized Cashier / Bursar</span>
+            </div>
+
+            <div class="text-right">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 font-extrabold text-[11px] uppercase tracking-wider">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>VERIFIED & POSTED</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center text-[10px] text-slate-400 mt-6 pt-3 border-t border-slate-100">
+            Thank you for supporting {{ school_name }}. Please retain this official receipt for your records.
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
+

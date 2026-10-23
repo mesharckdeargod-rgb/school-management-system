@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Academics & Gradebook{% endblock %}
+{% block header %}Pupil Grades & Evaluations{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Filter and Quick Action Header -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        
+        <form method="GET" action="{{ url_for('grades') }}" class="flex flex-wrap items-center gap-3">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Select Class</label>
+                <select name="class_id" onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 min-w-[200px]">
+                    {% for c in classes %}
+                    <option value="{{ c['id'] }}" {% if selected_class_id == c['id'] %}selected{% endif %}>
+                        {{ c['name'] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Academic Term</label>
+                <select name="term" onchange="this.form.submit()"
+                        class="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 min-w-[180px]">
+                    <option value="Term 1 - Fall 2026" {% if term == 'Term 1 - Fall 2026' %}selected{% endif %}>Term 1 - Fall 2026</option>
+                    <option value="Term 2 - Spring 2027" {% if term == 'Term 2 - Spring 2027' %}selected{% endif %}>Term 2 - Spring 2027</option>
+                    <option value="Term 3 - Summer 2027" {% if term == 'Term 3 - Summer 2027' %}selected{% endif %}>Term 3 - Summer 2027</option>
+                </select>
+            </div>
+        </form>
+
+        <!-- Record Grade Button -->
+        <button onclick="document.getElementById('gradeModal').classList.remove('hidden')"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition shadow-sm">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Record / Edit Grade</span>
+        </button>
+    </div>
+
+    <!-- Gradebook Matrix Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+            <div class="text-xs font-bold text-slate-700">
+                Evaluation Grid • <span class="text-brand-600 font-semibold">{{ term }}</span>
+            </div>
+            <span class="text-[11px] text-slate-400">Scale: A+ (90-100) • A (80-89) • B (70-79) • C (60-69) • D (50-59) • F (<50)</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
+                    <tr>
+                        <th class="px-5 py-3.5 sticky left-0 bg-slate-50 z-10 shadow-xs">Pupil Name</th>
+                        {% for sub in subjects %}
+                        <th class="px-3 py-3.5 text-center">{{ sub['name'] }}</th>
+                        {% endfor %}
+                        <th class="px-4 py-3.5 text-right">Report Card</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for st in students %}
+                    <tr class="hover:bg-slate-50/70 transition-colors">
+                        <!-- Student Column -->
+                        <td class="px-5 py-3 sticky left-0 bg-white z-10 shadow-xs whitespace-nowrap">
+                            <div class="font-bold text-slate-900">{{ st['first_name'] }} {{ st['last_name'] }}</div>
+                            <div class="text-[11px] text-slate-400 font-mono">{{ st['admission_no'] }}</div>
+                        </td>
+
+                        <!-- Grades Columns -->
+                        {% for sub in subjects %}
+                        {% set g = grade_map.get((st['id'], sub['id'])) %}
+                        <td class="px-3 py-3 text-center whitespace-nowrap">
+                            {% if g %}
+                            <div class="inline-flex flex-col items-center">
+                                <span class="font-bold text-slate-800">{{ g['score']|int }}%</span>
+                                <span class="text-[10px] font-black px-1.5 py-0.2 rounded 
+                                    {% if g['letter_grade'] in ['A+', 'A'] %}bg-emerald-100 text-emerald-800
+                                    {% elif g['letter_grade'] == 'B' %}bg-blue-100 text-blue-800
+                                    {% elif g['letter_grade'] == 'C' %}bg-amber-100 text-amber-800
+                                    {% else %}bg-rose-100 text-rose-800{% endif %}">
+                                    {{ g['letter_grade'] }}
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-300 font-mono">-</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+
+                        <!-- Actions -->
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{{ url_for('report_card', student_id=st['id'], term=term) }}"
+                                   class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-xs border border-amber-200 transition">
+                                    <i data-lucide="award" class="w-3.5 h-3.5"></i>
+                                    <span>Report Card</span>
+                                </a>
+                                <button type="button" onclick="openShareModal({{ st['id'] }}, '{{ term }}')"
+                                        title="Send Report Card to Parent via WhatsApp or SMS"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs border border-emerald-200 transition">
+                                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                    <span>Send</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{{ subjects|length + 2 }}" class="py-12 text-center text-slate-400">
+                            No students found in this class.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Record / Update Grade -->
+<div id="gradeModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="edit-3" class="w-4 h-4 text-brand-600"></i> Record / Update Pupil Grade
+            </h3>
+            <button type="button" onclick="document.getElementById('gradeModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('save_grade') }}" class="p-6 space-y-4 text-xs">
+            <input type="hidden" name="term" value="{{ term }}">
+
+            <div>
+                <label class="block text-slate-600 font-semibold mb-1">Select Pupil *</label>
+                <select name="student_id" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {% for st in students %}
+                    <option value="{{ st['id'] }}">{{ st['first_name'] }} {{ st['last_name'] }} ({{ st['admission_no'] }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-slate-600 font-semibold mb-1">Subject *</label>
+                <select name="subject_id" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    {% for sub in subjects %}
+                    <option value="{{ sub['id'] }}">{{ sub['name'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Score (0 - 100) *</label>
+                    <input type="number" step="0.5" min="0" max="100" name="score" required placeholder="85.0"
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Classroom Conduct</label>
+                    <select name="conduct_rating" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="Excellent">Excellent</option>
+                        <option value="Very Good">Very Good</option>
+                        <option value="Good" selected>Good</option>
+                        <option value="Satisfactory">Satisfactory</option>
+                        <option value="Needs Support">Needs Support</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-slate-600 font-semibold mb-1">Teacher Remarks / Observations</label>
+                <textarea name="teacher_remarks" rows="3" placeholder="e.g. Demonstrates great enthusiasm in group discussions and reads fluently."
+                          class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="document.getElementById('gradeModal').classList.add('hidden')"
+                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-sm">
+                    Save Evaluation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Instant Share to Parent via WhatsApp/SMS -->
+<div id="quickShareModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Send Report Card to Parent</h3>
+                    <p class="text-[11px] text-slate-400" id="sharePupilSubtitle">Preparing message...</p>
+                </div>
+            </div>
+            <button type="button" onclick="document.getElementById('quickShareModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="p-5 space-y-4 text-xs">
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Parent / Guardian</span>
+                    <span class="font-bold text-slate-800" id="shareParentName">Loading...</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Phone</span>
+                    <span class="font-mono font-bold text-slate-700" id="shareParentPhone">-</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Message Preview</label>
+                <textarea id="shareTextPreview" rows="7" readonly
+                          class="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-mono leading-relaxed text-slate-700"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+                <a id="shareWhatsappLink" href="#" target="_blank" rel="noopener noreferrer"
+                   class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <span>Send WhatsApp</span>
+                </a>
+
+                <a id="shareSmsLink" href="#"
+                   class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition">
+                    <i data-lucide="smartphone" class="w-4 h-4"></i>
+                    <span>Send SMS</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function openShareModal(studentId, term) {
+        document.getElementById('quickShareModal').classList.remove('hidden');
+        document.getElementById('sharePupilSubtitle').innerText = "Loading report card summary...";
+
+        try {
+            const resp = await fetch(`/api/report-card/${studentId}/preview-data?term=${encodeURIComponent(term)}`);
+            const data = await resp.json();
+            
+            document.getElementById('sharePupilSubtitle').innerText = `For pupil: ${data.student_name}`;
+            document.getElementById('shareParentName').innerText = data.guardian_name;
+            document.getElementById('shareParentPhone').innerText = data.guardian_phone;
+            document.getElementById('shareTextPreview').value = data.message_text;
+            document.getElementById('shareWhatsappLink').href = data.whatsapp_url;
+            document.getElementById('shareSmsLink').href = data.sms_url;
+        } catch (e) {
+            document.getElementById('sharePupilSubtitle').innerText = "Error loading report card preview.";
+        }
+    }
+</script>
+{% endblock %}
+

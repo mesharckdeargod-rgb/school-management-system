@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block header %}Overview Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Hero / Welcome Banner -->
+    <div class="rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white p-6 md:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        <div class="absolute -right-6 -bottom-8 opacity-10 text-9xl select-none pointer-events-none">
+            🎒
+        </div>
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-xs font-medium text-blue-100 backdrop-blur-sm mb-2">
+                <span>🌟 Primary School Management</span>
+                <span class="w-1 h-1 rounded-full bg-amber-300"></span>
+                <span>Term 1 in Session</span>
+            </div>
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Welcome back to {{ school_name }}!</h2>
+            <p class="text-blue-100 text-sm mt-1 max-w-xl">{{ school_tagline }}. Here is a summary of school attendance, academics, classes, and administrative activities.</p>
+        </div>
+        <div class="flex flex-wrap gap-2.5">
+            <a href="{{ url_for('attendance') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold text-xs transition-transform transform active:scale-95 shadow-md">
+                <i data-lucide="check-check" class="w-4 h-4"></i>
+                Take Attendance
+            </a>
+            <a href="{{ url_for('students') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 backdrop-blur-sm transition-colors">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                Add Pupil
+            </a>
+        </div>
+    </div>
+
+    <!-- Top KPI Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- Students -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Pupils</span>
+                <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{{ total_students }}</h3>
+                <span class="inline-flex items-center text-xs font-medium text-emerald-600 mt-1 gap-1">
+                    <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                    <span>Enrolled across K-5</span>
+                </span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+            </div>
+        </div>
+
+        <!-- Teachers -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Teaching Faculty</span>
+                <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{{ total_teachers }}</h3>
+                <span class="inline-flex items-center text-xs font-medium text-slate-500 mt-1">
+                    Certified educators
+                </span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <i data-lucide="users" class="w-6 h-6"></i>
+            </div>
+        </div>
+
+        <!-- Today's Attendance -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Attendance Rate</span>
+                <h3 class="text-3xl font-extrabold text-slate-800 mt-1">{{ att_rate }}%</h3>
+                <span class="inline-flex items-center text-xs font-medium text-slate-500 mt-1">
+                    {{ present + late }} of {{ tot_attendance }} marked
+                </span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <i data-lucide="calendar-check" class="w-6 h-6"></i>
+            </div>
+        </div>
+
+        <!-- Outstanding Fees -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fee Collection</span>
+                <h3 class="text-3xl font-extrabold text-slate-800 mt-1">${{ "{:,.0f}".format(fee_stats['total_collected']) }}</h3>
+                <span class="inline-flex items-center text-xs font-medium text-amber-600 mt-1">
+                    ${{ "{:,.0f}".format(fee_stats['total_outstanding']) }} outstanding
+                </span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <i data-lucide="wallet" class="w-6 h-6"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Breakdown & Quick Stats Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Attendance Breakdown Widget -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-5 h-5 text-brand-600"></i>
+                        Attendance Overview
+                    </h3>
+                    <span class="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                        {{ effective_date }}
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                        <span class="text-xs font-medium text-emerald-700">Present</span>
+                        <div class="text-2xl font-bold text-emerald-800 mt-0.5">{{ present }}</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-amber-50 border border-amber-100">
+                        <span class="text-xs font-medium text-amber-700">Late</span>
+                        <div class="text-2xl font-bold text-amber-800 mt-0.5">{{ late }}</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-rose-50 border border-rose-100">
+                        <span class="text-xs font-medium text-rose-700">Absent</span>
+                        <div class="text-2xl font-bold text-rose-800 mt-0.5">{{ absent }}</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                        <span class="text-xs font-medium text-blue-700">Excused</span>
+                        <div class="text-2xl font-bold text-blue-800 mt-0.5">{{ excused }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100">
+                <a href="{{ url_for('attendance') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center justify-between">
+                    <span>Manage Roll Call & Class Sheets</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Class Capacity & Distribution -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="layout-grid" class="w-5 h-5 text-indigo-600"></i>
+                    Classes & Capacity
+                </h3>
+                <a href="{{ url_for('classes') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">View All</a>
+            </div>
+
+            <div class="space-y-3.5">
+                {% for cl in classes_data %}
+                {% set pct = (cl['student_count'] / cl['capacity'] * 100)|round|int %}
+                <div>
+                    <div class="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
+                        <span class="font-semibold text-slate-800">{{ cl['name'] }}</span>
+                        <span class="text-slate-500">{{ cl['student_count'] }} / {{ cl['capacity'] }} pupils ({{ pct }}%)</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-300 {% if pct >= 90 %}bg-rose-500{% elif pct >= 70 %}bg-amber-500{% else %}bg-brand-500{% endif %}" style="width: {{ pct }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Split: Recent Enrollments & School Notices -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Recent Enrollments -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-amber-500"></i>
+                    Recently Enrolled Pupils
+                </h3>
+                <a href="{{ url_for('students') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">View Roster</a>
+            </div>
+
+            <div class="divide-y divide-slate-100">
+                {% for st in recent_students %}
+                <div class="py-3 flex items-center justify-between hover:bg-slate-50/60 rounded-xl px-2 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full {{ st['avatar_color'] }} font-bold text-xs flex items-center justify-center">
+                            {{ st['first_name'][0] }}{{ st['last_name'][0] }}
+                        </div>
+                        <div>
+                            <a href="{{ url_for('student_detail', student_id=st['id']) }}" class="text-sm font-semibold text-slate-900 hover:text-brand-600">
+                                {{ st['first_name'] }} {{ st['last_name'] }}
+                            </a>
+                            <div class="text-xs text-slate-400">
+                                {{ st['admission_no'] }} • {{ st['class_name'] }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ url_for('report_card', student_id=st['id']) }}" title="View Report Card" class="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50">
+                            <i data-lucide="award" class="w-4 h-4"></i>
+                        </a>
+                        <a href="{{ url_for('student_detail', student_id=st['id']) }}" class="text-xs font-medium text-slate-500 hover:text-slate-800 px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg">
+                            Profile
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- School Notice Board -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="bell" class="w-5 h-5 text-rose-500"></i>
+                        Campus Notices & Circulars
+                    </h3>
+                    <a href="{{ url_for('notices') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Notice Board</a>
+                </div>
+
+                <div class="space-y-3">
+                    {% for n in recent_notices %}
+                    <div class="p-3.5 rounded-xl border {% if n['priority'] == 'High' %}border-rose-200 bg-rose-50/30{% else %}border-slate-100 bg-slate-50/50{% endif %}">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-semibold text-xs text-slate-800">{{ n['title'] }}</span>
+                            {% if n['priority'] == 'High' %}
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">Urgent</span>
+                            {% else %}
+                            <span class="text-[10px] font-medium text-slate-400">{{ n['date_posted'] }}</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-slate-600 line-clamp-2">{{ n['content'] }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="pt-4 mt-3 border-t border-slate-100">
+                <a href="{{ url_for('notices') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                    Post New Announcement
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+

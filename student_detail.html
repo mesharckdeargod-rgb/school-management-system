@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student['first_name'] }} {{ student['last_name'] }} - Pupil Profile{% endblock %}
+{% block header %}Pupil Information Profile{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Back button & top bar -->
+    <div class="flex items-center justify-between">
+        <a href="{{ url_for('students') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back to Pupil Roster</span>
+        </a>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('report_card', student_id=student['id']) }}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs shadow-sm transition">
+                <i data-lucide="award" class="w-4 h-4"></i>
+                Official Report Card
+            </a>
+            <a href="{{ url_for('report_card', student_id=student['id']) }}#shareModal" onclick="setTimeout(() => { const m = document.getElementById('shareModal'); if(m) m.classList.remove('hidden'); }, 300)" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm transition">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                Send to Parent
+            </a>
+            <button onclick="document.getElementById('editModal').classList.remove('hidden')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+                Edit Details
+            </button>
+        </div>
+    </div>
+
+    <!-- Student Header Card -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div class="flex items-center gap-4">
+            <div class="w-20 h-20 rounded-2xl {{ student['avatar_color'] }} font-extrabold text-2xl flex items-center justify-center shrink-0 shadow-inner">
+                {{ student['first_name'][0] }}{{ student['last_name'][0] }}
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h2 class="text-2xl font-black text-slate-900">{{ student['first_name'] }} {{ student['last_name'] }}</h2>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                        {{ student['status'] }}
+                    </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-y-1 gap-x-3 text-xs text-slate-500 mt-1 font-medium">
+                    <span class="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-700">{{ student['admission_no'] }}</span>
+                    <span>•</span>
+                    <span class="text-brand-600 font-semibold">{{ student['class_name'] }} ({{ student['grade_level'] }})</span>
+                    <span>•</span>
+                    <span>Homeroom: <strong>{{ student['homeroom_teacher'] or 'Unassigned' }}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Summary Stats -->
+        <div class="flex items-center gap-4 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
+            <div class="text-center">
+                {% set att_total = att_summary['total_days'] or 0 %}
+                {% set att_present = att_summary['present_cnt'] or 0 %}
+                {% set att_late = att_summary['late_cnt'] or 0 %}
+                {% set att_pct = ((att_present + att_late) / att_total * 100)|round|int if att_total > 0 else 100 %}
+                <span class="text-xs text-slate-400 font-medium">Attendance Rate</span>
+                <div class="text-xl font-bold text-slate-800">{{ att_pct }}%</div>
+                <span class="text-[10px] text-slate-400">{{ att_present }} days present</span>
+            </div>
+            <div class="h-8 w-px bg-slate-100"></div>
+            <div class="text-center">
+                <span class="text-xs text-slate-400 font-medium">Enrolled Date</span>
+                <div class="text-sm font-bold text-slate-800 mt-1">{{ student['enrollment_date'] }}</div>
+                <span class="text-[10px] text-emerald-600 font-medium">Active Scholar</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Column 1: Personal & Guardian Information -->
+        <div class="space-y-6">
+
+            <!-- Personal & Medical Info -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4 text-brand-600"></i> Pupil Information
+                </h3>
+                
+                <div class="space-y-3 text-xs">
+                    <div class="flex justify-between py-1 border-b border-slate-100">
+                        <span class="text-slate-400">Date of Birth</span>
+                        <span class="font-semibold text-slate-700">{{ student['date_of_birth'] }}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100">
+                        <span class="text-slate-400">Gender</span>
+                        <span class="font-semibold text-slate-700">{{ student['gender'] }}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100">
+                        <span class="text-slate-400">Primary Class</span>
+                        <span class="font-semibold text-brand-600">{{ student['class_name'] }}</span>
+                    </div>
+                </div>
+
+                <!-- Medical Warning Box -->
+                <div class="mt-4 p-3.5 rounded-xl {% if student['medical_allergies'] and student['medical_allergies'] != 'None' %}bg-rose-50 border border-rose-200 text-rose-900{% else %}bg-slate-50 text-slate-600{% endif %} text-xs">
+                    <div class="font-bold flex items-center gap-1.5 mb-1">
+                        <i data-lucide="heart-pulse" class="w-4 h-4 {% if student['medical_allergies'] and student['medical_allergies'] != 'None' %}text-rose-600{% else %}text-slate-400{% endif %}"></i>
+                        <span>Medical & Dietary Note</span>
+                    </div>
+                    <p class="leading-relaxed">{{ student['medical_allergies'] }}</p>
+                </div>
+            </div>
+
+            <!-- Guardian & Emergency Contacts -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i> Family & Emergency Contacts
+                </h3>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <span class="text-slate-400 block mb-0.5">Primary Guardian</span>
+                        <span class="font-bold text-slate-800">{{ student['guardian_name'] }}</span>
+                        <span class="text-slate-400">({{ student['guardian_relation'] }})</span>
+                    </div>
+
+                    <div>
+                        <span class="text-slate-400 block mb-0.5">Primary Phone</span>
+                        <a href="tel:{{ student['guardian_phone'] }}" class="font-semibold text-brand-600 hover:underline flex items-center gap-1.5">
+                            <i data-lucide="phone" class="w-3.5 h-3.5"></i>
+                            {{ student['guardian_phone'] }}
+                        </a>
+                    </div>
+
+                    {% if student['guardian_email'] %}
+                    <div>
+                        <span class="text-slate-400 block mb-0.5">Guardian Email</span>
+                        <a href="mailto:{{ student['guardian_email'] }}" class="font-semibold text-brand-600 hover:underline flex items-center gap-1.5">
+                            <i data-lucide="mail" class="w-3.5 h-3.5"></i>
+                            {{ student['guardian_email'] }}
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% if student['home_address'] %}
+                    <div>
+                        <span class="text-slate-400 block mb-0.5">Home Address</span>
+                        <span class="text-slate-700 flex items-start gap-1.5">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5"></i>
+                            {{ student['home_address'] }}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    {% if student['emergency_contact'] %}
+                    <div class="pt-2 border-t border-slate-100">
+                        <span class="text-slate-400 block mb-0.5">Secondary Emergency Line</span>
+                        <span class="font-semibold text-slate-700 font-mono">{{ student['emergency_contact'] }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="bg-rose-50/50 rounded-2xl border border-rose-100 p-5">
+                <h4 class="text-xs font-bold text-rose-900 mb-1">Administrative Actions</h4>
+                <p class="text-[11px] text-rose-600 mb-3">Deleting a student removes their gradebook, attendance and fee records.</p>
+                <form method="POST" action="{{ url_for('delete_student', student_id=student['id']) }}" onsubmit="return confirm('Are you certain you want to permanently delete this student record?');">
+                    <button type="submit" class="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-sm transition">
+                        Delete Pupil Record
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- Column 2 & 3: Academic Grades, Attendance Log, Fees -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Academic Grades Card -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i data-lucide="award" class="w-4.5 h-4.5 text-amber-500"></i>
+                        Academic Evaluations & Term Progress
+                    </h3>
+                    <a href="{{ url_for('report_card', student_id=student['id']) }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                        <span>Full Report Card</span>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+                {% if grades %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
+                            <tr>
+                                <th class="py-2.5 px-3">Subject</th>
+                                <th class="py-2.5 px-3">Term</th>
+                                <th class="py-2.5 px-3 text-center">Score</th>
+                                <th class="py-2.5 px-3 text-center">Grade</th>
+                                <th class="py-2.5 px-3">Conduct</th>
+                                <th class="py-2.5 px-3">Teacher Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for g in grades %}
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="py-3 px-3 font-semibold text-slate-800">{{ g['subject_name'] }}</td>
+                                <td class="py-3 px-3 text-slate-500">{{ g['term'] }}</td>
+                                <td class="py-3 px-3 text-center font-bold text-slate-800">{{ g['score'] }}%</td>
+                                <td class="py-3 px-3 text-center">
+                                    <span class="inline-block px-2 py-0.5 rounded font-black text-xs 
+                                        {% if g['letter_grade'] in ['A+', 'A'] %}bg-emerald-100 text-emerald-800
+                                        {% elif g['letter_grade'] == 'B' %}bg-blue-100 text-blue-800
+                                        {% elif g['letter_grade'] == 'C' %}bg-amber-100 text-amber-800
+                                        {% else %}bg-rose-100 text-rose-800{% endif %}">
+                                        {{ g['letter_grade'] }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3">
+                                    <span class="text-xs text-slate-600">{{ g['conduct_rating'] }}</span>
+                                </td>
+                                <td class="py-3 px-3 text-slate-500 italic text-[11px] max-w-xs">{{ g['teacher_remarks'] or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-slate-400 text-xs">
+                    <i data-lucide="book-open" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                    No evaluations recorded for this pupil yet.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Attendance History -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-4.5 h-4.5 text-blue-500"></i>
+                        Recent Daily Attendance Records
+                    </h3>
+                    <a href="{{ url_for('attendance') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Daily Sheet</a>
+                </div>
+
+                {% if recent_attendance %}
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {% for att in recent_attendance %}
+                    <div class="p-3 rounded-xl border border-slate-100 text-center
+                        {% if att['status'] == 'Present' %}bg-emerald-50/50 border-emerald-200 text-emerald-800
+                        {% elif att['status'] == 'Late' %}bg-amber-50/50 border-amber-200 text-amber-800
+                        {% elif att['status'] == 'Absent' %}bg-rose-50/50 border-rose-200 text-rose-800
+                        {% else %}bg-blue-50/50 border-blue-200 text-blue-800{% endif %}">
+                        <div class="text-[10px] font-semibold text-slate-500">{{ att['date'] }}</div>
+                        <div class="text-xs font-black mt-1">{{ att['status'] }}</div>
+                        {% if att['remarks'] %}
+                        <div class="text-[9px] text-slate-400 mt-1 truncate" title="{{ att['remarks'] }}">{{ att['remarks'] }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-xs text-slate-400">No attendance logs found.</p>
+                {% endif %}
+            </div>
+
+            <!-- Fee & Billing History -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i data-lucide="receipt" class="w-4.5 h-4.5 text-emerald-600"></i>
+                        Tuition & Fees Ledger
+                    </h3>
+                    <a href="{{ url_for('fees') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Manage Billing</a>
+                </div>
+
+                {% if fees %}
+                <div class="divide-y divide-slate-100">
+                    {% for f in fees %}
+                    <div class="py-3 flex items-center justify-between text-xs">
+                        <div>
+                            <div class="font-semibold text-slate-800">{{ f['fee_type'] }}</div>
+                            <div class="text-[11px] text-slate-400">Due: {{ f['due_date'] }}</div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <div class="font-bold text-slate-900">${{ "{:,.2f}".format(f['amount']) }}</div>
+                                <div class="text-[10px] text-slate-500">Paid: ${{ "{:,.2f}".format(f['paid_amount']) }}</div>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold
+                                {% if f['status'] == 'Paid' %}bg-emerald-100 text-emerald-800
+                                {% elif f['status'] == 'Partial' %}bg-amber-100 text-amber-800
+                                {% else %}bg-rose-100 text-rose-800{% endif %}">
+                                {{ f['status'] }}
+                            </span>
+                            {% if f['status'] in ['Paid', 'Partial'] %}
+                            <a href="{{ url_for('fee_receipt', fee_id=f['id']) }}" class="p-1 text-slate-400 hover:text-brand-600" title="Print Receipt">
+                                <i data-lucide="printer" class="w-4 h-4"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-xs text-slate-400">No fee records found for this student.</p>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal: Edit Student Information -->
+<div id="editModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-800">Edit Pupil Information</h3>
+            <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('edit_student', student_id=student['id']) }}" class="p-6 space-y-4 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">First Name</label>
+                    <input type="text" name="first_name" value="{{ student['first_name'] }}" required
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Last Name</label>
+                    <input type="text" name="last_name" value="{{ student['last_name'] }}" required
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Date of Birth</label>
+                    <input type="date" name="date_of_birth" value="{{ student['date_of_birth'] }}" required
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Gender</label>
+                    <select name="gender" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                        <option value="Male" {% if student['gender'] == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if student['gender'] == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Other" {% if student['gender'] == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Class</label>
+                    <select name="class_id" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                        {% for c in classes %}
+                        <option value="{{ c['id'] }}" {% if student['class_id'] == c['id'] %}selected{% endif %}>{{ c['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Enrollment Status</label>
+                    <select name="status" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                        <option value="Active" {% if student['status'] == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Inactive" {% if student['status'] == 'Inactive' %}selected{% endif %}>Inactive</option>
+                        <option value="Graduated" {% if student['status'] == 'Graduated' %}selected{% endif %}>Graduated</option>
+                        <option value="Transferred" {% if student['status'] == 'Transferred' %}selected{% endif %}>Transferred</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-slate-600 font-semibold mb-1">Medical / Allergies</label>
+                    <input type="text" name="medical_allergies" value="{{ student['medical_allergies'] }}"
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Guardian Name</label>
+                    <input type="text" name="guardian_name" value="{{ student['guardian_name'] }}" required
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Guardian Phone</label>
+                    <input type="text" name="guardian_phone" value="{{ student['guardian_phone'] }}" required
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Guardian Email</label>
+                    <input type="email" name="guardian_email" value="{{ student['guardian_email'] or '' }}"
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-semibold mb-1">Emergency Phone</label>
+                    <input type="text" name="emergency_contact" value="{{ student['emergency_contact'] or '' }}"
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-slate-600 font-semibold mb-1">Residential Address</label>
+                    <input type="text" name="home_address" value="{{ student['home_address'] or '' }}"
+                           class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2">
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-sm">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
